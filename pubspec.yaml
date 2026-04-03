@@ -1,0 +1,50 @@
+name: autocure
+description: "Self-Healing Flutter Agent - Autonomous infrastructure and code management"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  # VM Service for runtime monitoring
+  vm_service: ^15.0.0
+  # Web socket for VM service connection
+  web_socket_channel: ^3.0.2
+  # JSON serialization
+  json_annotation: ^4.9.0
+  # HTTP for CI/CD API calls
+  http: ^1.4.0
+  # State management
+  provider: ^6.1.4
+  # Local storage for fix history
+  shared_preferences: ^2.5.3
+  # Charts for dashboard
+  fl_chart: ^0.70.2
+  # Date formatting
+  intl: ^0.20.2
+  # File system watching
+  watcher: ^1.1.1
+  # Path utilities
+  path: ^1.9.1
+  # Logging
+  logging: ^1.3.0
+  # UUID for unique identifiers
+  uuid: ^4.5.1
+  # Process management
+  process_run: ^1.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  json_serializable: ^6.9.4
+  build_runner: ^2.4.15
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/

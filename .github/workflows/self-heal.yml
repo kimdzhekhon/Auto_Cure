@@ -1,0 +1,242 @@
+name: AutoCure Self-Healing Pipeline
+
+on:
+  # Trigger on push to any autofix branch created by the agent.
+  push:
+    branches:
+      - 'autofix/**'
+
+  # Allow manual dispatch from the Actions tab.
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to run against'
+        required: false
+        default: 'main'
+
+  # Scheduled daily run of the self-healing agent.
+  schedule:
+    - cron: '0 3 * * *' # Every day at 03:00 UTC
+
+concurrency:
+  group: autocure-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.24.0'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Static analysis
+  # ---------------------------------------------------------------------------
+  analyze:
+    name: Dart Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run dart analyze
+        run: dart analyze --fatal-infos
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Tests
+  # ---------------------------------------------------------------------------
+  test:
+    name: Flutter Test
+    runs-on: ubuntu-latest
+    needs: analyze
+    outputs:
+      test_result: ${{ steps.run_tests.outcome }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        id: run_tests
+        continue-on-error: true
+        run: flutter test --coverage --machine > test_results.json
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            test_results.json
+            coverage/
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Auto-merge on success / close on failure
+  # ---------------------------------------------------------------------------
+  auto-merge:
+    name: Auto Merge or Close
+    runs-on: ubuntu-latest
+    needs: [analyze, test]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/autofix/')
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find associated pull request
+        id: find_pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.ref.replace('refs/heads/', '');
+            const { data: pulls } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${branch}`,
+              state: 'open',
+            });
+            if (pulls.length === 0) {
+              core.setFailed(`No open PR found for branch ${branch}`);
+              return;
+            }
+            const pr = pulls[0];
+            core.setOutput('pr_number', pr.number);
+            core.setOutput('pr_branch', branch);
+            core.info(`Found PR #${pr.number} for branch ${branch}`);
+
+      # -- Success path: approve and merge -----------------------------------
+      - name: Approve pull request
+        if: needs.test.result == 'success' && needs.analyze.result == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ steps.find_pr.outputs.pr_number }},
+              event: 'APPROVE',
+              body: 'All checks passed. Auto-approved by AutoCure pipeline.',
+            });
+
+      - name: Merge pull request
+        if: needs.test.result == 'success' && needs.analyze.result == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ steps.find_pr.outputs.pr_number }},
+              merge_method: 'squash',
+              commit_title: `[AutoCure] Merge fix from ${{ steps.find_pr.outputs.pr_branch }}`,
+            });
+            core.info('PR merged successfully.');
+
+      - name: Delete fix branch
+        if: needs.test.result == 'success' && needs.analyze.result == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `heads/${{ steps.find_pr.outputs.pr_branch }}`,
+            });
+            core.info('Fix branch deleted.');
+
+      # -- Failure path: comment and close ------------------------------------
+      - name: Comment on failed PR
+        if: needs.test.result == 'failure' || needs.analyze.result == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const analyzeResult = '${{ needs.analyze.result }}';
+            const testResult = '${{ needs.test.result }}';
+
+            let body = '## AutoCure Pipeline Failed\n\n';
+            body += '| Stage | Result |\n';
+            body += '|-------|--------|\n';
+            body += `| Analyze | ${analyzeResult === 'success' ? 'Passed' : 'Failed'} |\n`;
+            body += `| Test | ${testResult === 'success' ? 'Passed' : 'Failed'} |\n`;
+            body += '\nThis automated fix did not pass CI checks. ';
+            body += 'The PR will be closed automatically. ';
+            body += 'Please review the [workflow run](' +
+              `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` +
+              ') for details.\n';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.find_pr.outputs.pr_number }},
+              body,
+            });
+
+      - name: Close failed PR
+        if: needs.test.result == 'failure' || needs.analyze.result == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ steps.find_pr.outputs.pr_number }},
+              state: 'closed',
+            });
+            core.info('Failed PR closed.');
+
+  # ---------------------------------------------------------------------------
+  # Job 4: Scheduled self-healing scan
+  # ---------------------------------------------------------------------------
+  scheduled-heal:
+    name: Scheduled Self-Healing Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run self-healing agent
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTOCURE_REPO_OWNER: ${{ github.repository_owner }}
+          AUTOCURE_REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          echo "Starting AutoCure scheduled self-healing scan..."
+          dart run autocure:heal --mode=scheduled --verbose
+          echo "Self-healing scan complete."
+
+      - name: Upload healing report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: healing-report-${{ github.run_id }}
+          path: reports/
+          retention-days: 30
