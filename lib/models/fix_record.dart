@@ -1,4 +1,3 @@
-import 'error_report.dart';
 
 /// Record of an automatic code fix applied by the self-healing agent.
 class FixRecord {

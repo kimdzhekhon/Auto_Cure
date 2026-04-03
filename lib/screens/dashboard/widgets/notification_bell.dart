@@ -97,7 +97,7 @@ class NotificationBell extends StatelessWidget {
                     : ListView.separated(
                         controller: scrollController,
                         itemCount: service.notifications.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                             const Divider(height: 1),
                         itemBuilder: (ctx, index) {
                           final n = service.notifications[index];

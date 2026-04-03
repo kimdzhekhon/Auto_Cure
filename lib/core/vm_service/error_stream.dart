@@ -49,7 +49,7 @@ class ErrorStream {
 
   // Extracts a file location like `package:foo/bar.dart:42:10`.
   static final RegExp _fileLocationPattern = RegExp(
-    r'(package:[^\s]+\.dart:\d+:\d+)',
+    r'(package:[^\s]+\.dart):(\d+):(\d+)',
   );
 
   // Extracts a widget path from the "The relevant error-causing widget was"
@@ -214,7 +214,8 @@ class ErrorStream {
   }) {
     // Attempt to extract file location.
     final fileMatch = _fileLocationPattern.firstMatch(rawMessage);
-    final fileLocation = fileMatch?.group(1);
+    final sourceFile = fileMatch?.group(1);
+    final sourceLine = int.tryParse(fileMatch?.group(2) ?? '');
 
     // Attempt to extract widget path.
     final widgetMatch = _widgetPathPattern.firstMatch(rawMessage);
@@ -228,12 +229,16 @@ class ErrorStream {
       id: _uuid.v4(),
       errorType: errorType.name,
       message: _summarise(rawMessage, errorType),
-      rawMessage: rawMessage,
       widgetPath: widgetPath,
-      fileLocation: fileLocation,
-      stackTrace: stackTrace,
+      sourceFile: sourceFile,
+      sourceLine: sourceLine,
+      stackTrace: stackTrace ?? '',
+      severity: ErrorSeverity.medium,
       timestamp: DateTime.now(),
-      extensionData: extensionData,
+      metadata: {
+        'raw_message': rawMessage,
+        if (extensionData != null) ...extensionData,
+      },
     );
   }
 

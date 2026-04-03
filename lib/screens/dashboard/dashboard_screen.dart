@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../models/agent_status.dart';
 import '../../models/fix_record.dart';
 import '../../services/agent_provider.dart';
-import '../../services/notification_service.dart';
 import '../../services/report_service.dart';
 import '../settings/settings_screen.dart';
 import 'widgets/status_card.dart';

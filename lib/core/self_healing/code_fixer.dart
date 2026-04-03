@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:autocure/models/fix_record.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -294,8 +293,6 @@ class CodeFixer {
     if (line < 1 || line > lines.length) return source;
 
     final idx = line - 1;
-    final targetLine = lines[idx];
-    final indent = _getIndent(targetLine);
 
     // Look for `body:` in nearby lines.
     for (var i = idx; i < (idx + 10).clamp(0, lines.length); i++) {

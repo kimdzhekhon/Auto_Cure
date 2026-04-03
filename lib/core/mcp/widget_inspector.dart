@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 
-import 'package:autocure/models/error_report.dart';
 
 /// A service that connects to Flutter's VM service protocol via WebSocket
 /// to inspect widgets, retrieve the widget tree, and detect layout issues.

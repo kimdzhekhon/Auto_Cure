@@ -23,7 +23,7 @@ void main() async {
 
 class McpServer {
   final String projectRoot;
-  int _requestId = 0;
+  final int _requestId = 0;
 
   McpServer({String? projectRoot})
       : projectRoot = projectRoot ?? Directory.current.path;
@@ -184,7 +184,7 @@ class McpServer {
   Future<Map<String, dynamic>> _getWidgetTree(String vmServiceUri) async {
     try {
       // Connect to VM service and get widget tree via ext.flutter.inspector
-      final result = await Process.run('flutter', [
+      await Process.run('flutter', [
         'run',
         '--machine',
       ], workingDirectory: projectRoot);

@@ -76,12 +76,10 @@ class SelfHealingAgent {
 
       // Start error monitoring
       final isolate = await _vmConnector.getMainIsolate();
-      if (isolate != null && _vmConnector.vmService != null) {
-        await _errorStream.startListening(
-          _vmConnector.vmService!,
-          isolate.id!,
-        );
-      }
+      await _errorStream.startListening(
+        _vmConnector.vmService,
+        isolate.id!,
+      );
 
       // Subscribe to error stream
       _errorSubscription = _errorStream.errorStream.listen(_onErrorDetected);
