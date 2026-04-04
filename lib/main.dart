@@ -8,6 +8,7 @@ import 'services/notification_service.dart';
 import 'services/error_pattern_db.dart';
 import 'services/health_check_service.dart';
 import 'screens/dashboard/dashboard_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   _setupLogging();
@@ -57,20 +58,8 @@ class AutoCureApp extends StatelessWidget {
             title: 'AutoCure - Self-Healing Agent',
             debugShowCheckedModeBanner: false,
             themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.deepPurple,
-                brightness: Brightness.light,
-              ),
-              useMaterial3: true,
-            ),
-            darkTheme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.deepPurple,
-                brightness: Brightness.dark,
-              ),
-              useMaterial3: true,
-            ),
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
             home: const DashboardScreen(),
           );
         },

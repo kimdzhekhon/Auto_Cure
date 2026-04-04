@@ -118,7 +118,7 @@ class HealthCheckService {
 
       if (_consecutiveFailures >= 3) {
         _notifications?.onHealthCheckFailed(
-          'Agent unhealthy for ${_consecutiveFailures} consecutive checks: '
+          'Agent unhealthy for $consecutiveFailures consecutive checks: '
           '${warnings.join(", ")}',
         );
       }

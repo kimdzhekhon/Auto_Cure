@@ -231,7 +231,7 @@ class ErrorStream {
       rawMessage: rawMessage,
       widgetPath: widgetPath,
       fileLocation: fileLocation,
-      stackTrace: stackTrace,
+      stackTrace: stackTrace ?? '',
       timestamp: DateTime.now(),
       extensionData: extensionData,
     );

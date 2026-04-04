@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../models/agent_status.dart';
+import '../../../theme/app_theme.dart';
 
 class AgentStatusWidget extends StatelessWidget {
   final AgentStatus status;
@@ -10,120 +11,114 @@ class AgentStatusWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _buildStateChip(status.state),
-                const Spacer(),
-                Text(
-                  'Success Rate: ${(status.successRate * 100).toStringAsFixed(1)}%',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: _successRateColor(status.successRate),
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (status.currentTask != null)
-              Row(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [AppColors.cardDark, const Color(0xFF16213E)]
+              : [Colors.white, const Color(0xFFF0EDFF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.border,
+        ),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _buildStateChip(status.state),
+              const Spacer(),
+              _buildSuccessRate(context, status.successRate),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (status.currentTask != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
                 children: [
                   if (status.state == AgentState.analyzing ||
                       status.state == AgentState.fixing ||
                       status.state == AgentState.verifying)
                     const Padding(
-                      padding: EdgeInsets.only(right: 8),
+                      padding: EdgeInsets.only(right: 10),
                       child: SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   Expanded(
                     child: Text(
                       status.currentTask!,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
                     ),
                   ),
                 ],
               ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _infoChip(
-                  Icons.timer,
-                  'Started: ${DateFormat.Hm().format(status.startedAt)}',
-                ),
-                const SizedBox(width: 12),
-                _infoChip(
-                  Icons.favorite,
-                  'Heartbeat: ${DateFormat.Hms().format(status.lastHeartbeat)}',
-                ),
-              ],
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _connectionChip('VM Service', status.vmServiceConnected),
-                const SizedBox(width: 8),
-                _connectionChip('MCP Server', status.mcpServerRunning),
-              ],
-            ),
-          ],
-        ),
+          if (status.currentTask != null) const SizedBox(height: 14),
+          Row(
+            children: [
+              _infoChip(
+                context,
+                Icons.schedule_rounded,
+                DateFormat.Hm().format(status.startedAt),
+              ),
+              const SizedBox(width: 10),
+              _infoChip(
+                context,
+                Icons.favorite_rounded,
+                DateFormat.Hms().format(status.lastHeartbeat),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _connectionChip(context, 'VM Service', status.vmServiceConnected),
+              const SizedBox(width: 8),
+              _connectionChip(context, 'MCP Server', status.mcpServerRunning),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildStateChip(AgentState state) {
     final (label, color) = switch (state) {
-      AgentState.idle => ('Idle', Colors.grey),
-      AgentState.monitoring => ('Monitoring', Colors.green),
-      AgentState.analyzing => ('Analyzing', Colors.blue),
-      AgentState.fixing => ('Fixing', Colors.orange),
-      AgentState.verifying => ('Verifying', Colors.purple),
-      AgentState.creatingPR => ('Creating PR', Colors.teal),
-      AgentState.error => ('Error', Colors.red),
-      AgentState.stopped => ('Stopped', Colors.grey),
+      AgentState.idle => ('Idle', AppColors.idle),
+      AgentState.monitoring => ('Monitoring', AppColors.monitoring),
+      AgentState.analyzing => ('Analyzing', AppColors.analyzing),
+      AgentState.fixing => ('Fixing', AppColors.fixing),
+      AgentState.verifying => ('Verifying', AppColors.verifying),
+      AgentState.creatingPR => ('Creating PR', AppColors.creatingPR),
+      AgentState.error => ('Error', AppColors.error),
+      AgentState.stopped => ('Stopped', AppColors.idle),
     };
 
-    return Chip(
-      avatar: CircleAvatar(
-        backgroundColor: color,
-        radius: 6,
-      ),
-      label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-      backgroundColor: color.withValues(alpha: 0.1),
-      side: BorderSide(color: color.withValues(alpha: 0.3)),
-    );
-  }
-
-  Widget _infoChip(IconData icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: Colors.grey),
-        const SizedBox(width: 4),
-        Text(text, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-      ],
-    );
-  }
-
-  Widget _connectionChip(String label, bool connected) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: (connected ? Colors.green : Colors.red).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: (connected ? Colors.green : Colors.red).withValues(alpha: 0.3),
-        ),
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -133,15 +128,22 @@ class AgentStatusWidget extends StatelessWidget {
             height: 8,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: connected ? Colors.green : Colors.red,
+              color: color,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.5),
+                  blurRadius: 4,
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 8),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
-              color: connected ? Colors.green[700] : Colors.red[700],
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: color,
             ),
           ),
         ],
@@ -149,9 +151,99 @@ class AgentStatusWidget extends StatelessWidget {
     );
   }
 
-  Color _successRateColor(double rate) {
-    if (rate >= 0.8) return Colors.green;
-    if (rate >= 0.5) return Colors.orange;
-    return Colors.red;
+  Widget _buildSuccessRate(BuildContext context, double rate) {
+    final color = rate >= 0.8
+        ? AppColors.success
+        : rate >= 0.5
+            ? AppColors.warning
+            : AppColors.error;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 32,
+          height: 32,
+          child: CircularProgressIndicator(
+            value: rate,
+            strokeWidth: 3,
+            backgroundColor: color.withValues(alpha: 0.15),
+            color: color,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${(rate * 100).toStringAsFixed(0)}%',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+                color: color,
+                letterSpacing: -0.5,
+              ),
+            ),
+            Text(
+              'Success',
+              style: TextStyle(
+                fontSize: 10,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _infoChip(BuildContext context, IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35)),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _connectionChip(BuildContext context, String label, bool connected) {
+    final color = connected ? AppColors.success : AppColors.error;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

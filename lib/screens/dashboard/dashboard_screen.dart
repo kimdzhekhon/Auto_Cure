@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import '../../models/agent_status.dart';
 import '../../models/fix_record.dart';
 import '../../services/agent_provider.dart';
-import '../../services/notification_service.dart';
 import '../../services/report_service.dart';
+import '../../theme/app_theme.dart';
 import '../settings/settings_screen.dart';
 import 'widgets/status_card.dart';
 import 'widgets/fix_history_list.dart';
@@ -50,8 +50,20 @@ class _DashboardScreenState extends State<DashboardScreen>
         final status = provider.status;
         return Scaffold(
           appBar: AppBar(
-            title: const Text('AutoCure Dashboard'),
-            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.auto_fix_high, color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Text('AutoCure'),
+              ],
+            ),
             actions: [
               _buildConnectionIndicator(status),
               const SizedBox(width: 4),
@@ -64,7 +76,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   const PopupMenuItem(
                     value: 'settings',
                     child: ListTile(
-                      leading: Icon(Icons.settings),
+                      leading: Icon(Icons.settings_outlined),
                       title: Text('Settings'),
                       dense: true,
                     ),
@@ -72,15 +84,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                   const PopupMenuItem(
                     value: 'export_json',
                     child: ListTile(
-                      leading: Icon(Icons.file_download),
-                      title: Text('Export JSON Report'),
+                      leading: Icon(Icons.file_download_outlined),
+                      title: Text('Export JSON'),
                       dense: true,
                     ),
                   ),
                   const PopupMenuItem(
                     value: 'export_csv',
                     child: ListTile(
-                      leading: Icon(Icons.table_chart),
+                      leading: Icon(Icons.table_chart_outlined),
                       title: Text('Export CSV'),
                       dense: true,
                     ),
@@ -91,10 +103,10 @@ class _DashboardScreenState extends State<DashboardScreen>
             bottom: TabBar(
               controller: _tabController,
               tabs: const [
-                Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
-                Tab(icon: Icon(Icons.timeline), text: 'Timeline'),
-                Tab(icon: Icon(Icons.error_outline), text: 'Errors'),
-                Tab(icon: Icon(Icons.auto_fix_high), text: 'Fixes'),
+                Tab(icon: Icon(Icons.dashboard_outlined), text: 'Overview'),
+                Tab(icon: Icon(Icons.timeline_outlined), text: 'Timeline'),
+                Tab(icon: Icon(Icons.bug_report_outlined), text: 'Errors'),
+                Tab(icon: Icon(Icons.auto_fix_high_outlined), text: 'Fixes'),
               ],
             ),
           ),
@@ -112,8 +124,11 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () => _showConnectDialog(context, provider),
-            icon: Icon(provider.isRunning ? Icons.refresh : Icons.play_arrow),
-            label: Text(provider.isRunning ? 'Reconnect' : 'Start Agent'),
+            icon: Icon(provider.isRunning ? Icons.refresh_rounded : Icons.play_arrow_rounded),
+            label: Text(
+              provider.isRunning ? 'Reconnect' : 'Start Agent',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         );
       },
@@ -133,19 +148,21 @@ class _DashboardScreenState extends State<DashboardScreen>
             children: [
               Expanded(
                 child: StatusCard(
-                  title: 'Errors Detected',
+                  title: 'Errors',
                   value: '${status.totalErrorsDetected}',
-                  icon: Icons.bug_report,
-                  color: Colors.red,
+                  icon: Icons.bug_report_rounded,
+                  color: AppColors.error,
+                  bgColor: AppColors.error.withValues(alpha: 0.1),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: StatusCard(
-                  title: 'Fixes Applied',
+                  title: 'Fixes',
                   value: '${status.totalFixesApplied}',
-                  icon: Icons.build,
-                  color: Colors.orange,
+                  icon: Icons.build_rounded,
+                  color: AppColors.warning,
+                  bgColor: AppColors.warning.withValues(alpha: 0.1),
                 ),
               ),
             ],
@@ -157,17 +174,19 @@ class _DashboardScreenState extends State<DashboardScreen>
                 child: StatusCard(
                   title: 'Verified',
                   value: '${status.totalFixesVerified}',
-                  icon: Icons.verified,
-                  color: Colors.green,
+                  icon: Icons.verified_rounded,
+                  color: AppColors.success,
+                  bgColor: AppColors.success.withValues(alpha: 0.1),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: StatusCard(
-                  title: 'PRs Created',
+                  title: 'PRs',
                   value: '${status.totalPRsCreated}',
-                  icon: Icons.merge,
-                  color: Colors.blue,
+                  icon: Icons.merge_rounded,
+                  color: AppColors.info,
+                  bgColor: AppColors.info.withValues(alpha: 0.1),
                 ),
               ),
             ],
@@ -185,7 +204,9 @@ class _DashboardScreenState extends State<DashboardScreen>
               children: [
                 Text(
                   'Recent Fixes',
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
                 const Spacer(),
                 TextButton(
@@ -196,27 +217,43 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
             const SizedBox(height: 8),
             ...provider.fixes.reversed.take(5).map(
-                  (fix) => Card(
-                    child: ListTile(
-                      leading: Icon(
-                        fix.status == FixStatus.verified ||
-                                fix.status == FixStatus.prCreated
-                            ? Icons.check_circle
-                            : fix.status == FixStatus.failed
-                                ? Icons.cancel
-                                : Icons.hourglass_bottom,
-                        color: fix.status == FixStatus.verified ||
-                                fix.status == FixStatus.prCreated
-                            ? Colors.green
-                            : fix.status == FixStatus.failed
-                                ? Colors.red
-                                : Colors.orange,
+                  (fix) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Card(
+                      child: ListTile(
+                        leading: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: _fixColor(fix).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(_fixIcon(fix), color: _fixColor(fix), size: 18),
+                        ),
+                        title: Text(
+                          fix.description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        ),
+                        subtitle: Text(
+                          '${fix.filePath}:${fix.lineNumber}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        trailing: fix.prUrl != null
+                            ? Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.info.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.link_rounded, color: AppColors.info, size: 16),
+                              )
+                            : null,
                       ),
-                      title: Text(fix.description, maxLines: 1, overflow: TextOverflow.ellipsis),
-                      subtitle: Text('${fix.filePath}:${fix.lineNumber}'),
-                      trailing: fix.prUrl != null
-                          ? const Icon(Icons.link, color: Colors.blue)
-                          : null,
                     ),
                   ),
                 ),
@@ -226,37 +263,61 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  IconData _fixIcon(FixRecord fix) {
+    if (fix.status == FixStatus.verified || fix.status == FixStatus.prCreated) {
+      return Icons.check_circle_rounded;
+    }
+    if (fix.status == FixStatus.failed) return Icons.cancel_rounded;
+    return Icons.hourglass_bottom_rounded;
+  }
+
+  Color _fixColor(FixRecord fix) {
+    if (fix.status == FixStatus.verified || fix.status == FixStatus.prCreated) {
+      return AppColors.success;
+    }
+    if (fix.status == FixStatus.failed) return AppColors.error;
+    return AppColors.warning;
+  }
+
   Widget _buildConnectionIndicator(AgentStatus status) {
     final connected = status.vmServiceConnected;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: connected ? Colors.green : Colors.red,
-            boxShadow: [
-              BoxShadow(
-                color: (connected ? Colors.green : Colors.red)
-                    .withValues(alpha: 0.5),
-                blurRadius: 6,
-                spreadRadius: 1,
-              ),
-            ],
+    final color = connected ? AppColors.success : AppColors.error;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.5),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          connected ? 'Live' : 'Off',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: connected ? Colors.green : Colors.red,
+          const SizedBox(width: 6),
+          Text(
+            connected ? 'Live' : 'Off',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -296,10 +357,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('JSON report saved to $path'),
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text('JSON report saved to $path')),
       );
     }
   }
@@ -312,10 +370,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('CSV reports saved to $dir'),
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text('CSV reports saved to $dir')),
       );
     }
   }
@@ -324,22 +379,38 @@ class _DashboardScreenState extends State<DashboardScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Connect to VM Service'),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.cable_rounded, color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Text('Connect to VM Service'),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Enter the VM service URI from flutter run output, '
               'or leave empty to auto-discover.',
+              style: TextStyle(
+                color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.6),
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _vmUriController,
               decoration: const InputDecoration(
                 hintText: 'ws://127.0.0.1:XXXXX/XXXXX=/ws',
-                border: OutlineInputBorder(),
                 labelText: 'VM Service URI',
-                prefixIcon: Icon(Icons.cable),
+                prefixIcon: Icon(Icons.cable_rounded),
               ),
             ),
           ],
@@ -357,7 +428,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 vmServiceUri: uri.isNotEmpty ? uri : null,
               );
             },
-            icon: const Icon(Icons.play_arrow),
+            icon: const Icon(Icons.play_arrow_rounded, size: 18),
             label: const Text('Connect'),
           ),
         ],

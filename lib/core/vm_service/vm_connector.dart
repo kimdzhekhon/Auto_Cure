@@ -77,8 +77,8 @@ class VmConnector {
       r'(wss?://127\.0\.0\.1:\d+/[^\s"]+/ws)',
     );
 
-    late final StreamSubscription<List<int>> stdoutSub;
-    late final StreamSubscription<List<int>> stderrSub;
+    late final StreamSubscription<String> stdoutSub;
+    late final StreamSubscription<String> stderrSub;
 
     void tryMatch(String line) {
       final match = uriPattern.firstMatch(line);

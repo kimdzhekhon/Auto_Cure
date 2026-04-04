@@ -183,6 +183,7 @@ class NotificationService extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
   void dispose() {
     _controller.close();
     super.dispose();
